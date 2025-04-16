@@ -33,7 +33,7 @@ const (
 	bucketLimit           = 100
 	numSequencesPerWorker = 50000
 	floatTolerance        = 1e-9
-	maxRetriesPerOrder    = 500
+	maxRetriesPerOrder    = 5000
 )
 
 func rollSlice(seq Sequence, k int) Sequence {
