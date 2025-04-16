@@ -33,7 +33,7 @@ const (
 	bucketLimit           = 100
 	numSequencesPerWorker = 50000
 	floatTolerance        = 1e-9
-	maxRetriesPerOrder    = 5
+	maxRetriesPerOrder    = 500
 )
 
 func rollSlice(seq Sequence, k int) Sequence {
@@ -362,65 +362,55 @@ func runForOrder(nOrder int, writer *bufio.Writer, attemptNum int) bool {
 }
 
 func main() {
-	// Жёстко заданный путь для выходного файла в контейнере
-	outputPath := "/app/output/answer_go_minimal.txt"
-
-	// Создаём директорию если её нет (на случай запуска не в контейнере)
-	if err := os.MkdirAll("/app/output", 0755); err != nil {
-		log.Printf("Warning: Could not create output directory: %v", err)
+	currentDir, _ := os.Getwd()
+	fmt.Printf("Current working directory: %s\n", currentDir)
+	outputFilename := "answer_go_minimal.txt"
+	outputPath := outputFilename
+	if currentDir != "" {
+		outputPath = currentDir + "/" + outputFilename
 	}
-
+	fmt.Printf("Attempting to write minimal results to: %s\n", outputPath)
 	file, err := os.Create(outputPath)
 	if err != nil {
 		log.Fatalf("FATAL: Could not create output file '%s': %v", outputPath, err)
 	}
 	defer file.Close()
-
 	writer := bufio.NewWriter(file)
 	defer writer.Flush()
-
 	startOrder := 6
 	endOrder := 134
 	step := 4
-
 	fmt.Println("Euler Bicircle Search (Go Version with Retry - Minimal File Output)")
 	fmt.Printf("Orders: %d to %d, step %d\n", startOrder, endOrder, step)
-	fmt.Printf("Parameters: M_BITS=%d, BUCKET_LIMIT=%d, NUM_SEQUENCES_PER_WORKER=%d\n",
-		mBits, bucketLimit, numSequencesPerWorker)
+	fmt.Printf("Parameters: M_BITS=%d, BUCKET_LIMIT=%d, NUM_SEQUENCES_PER_WORKER=%d\n", mBits, bucketLimit, numSequencesPerWorker)
 	fmt.Printf("Max Retries Per Order: %d\n", maxRetriesPerOrder)
 	fmt.Println(strings.Repeat("=", 60))
-
-	for nOrder := startOrder; nOrder <= endOrder; {
+	for nOrder := startOrder; nOrder <= endOrder; /* инкремент ниже */ {
 		retryCount := 0
 		foundPotential := false
-
 		for {
 			retryCount++
-			fmt.Printf("\n%s\nAttempt %d for order %d\n%s\n",
-				strings.Repeat("-", 60), retryCount, nOrder, strings.Repeat("-", 60))
-
+			fmt.Printf("\n%s\nAttempt %d for order %d\n%s\n", strings.Repeat("-", 60), retryCount, nOrder, strings.Repeat("-", 60))
 			foundPotential = runForOrder(nOrder, writer, retryCount)
-
 			if foundPotential {
-				fmt.Printf("\n%s\nFinished attempts for order %d after finding potential solution on attempt %d.\n%s\n",
-					strings.Repeat("=", 60), nOrder, retryCount, strings.Repeat("=", 60))
+				fmt.Printf("\n%s\nFinished attempts for order %d after finding potential solution on attempt %d.\n%s\n", strings.Repeat("=", 60), nOrder, retryCount, strings.Repeat("=", 60))
 				nOrder += step
 				break
 			} else {
-				fmt.Printf("\n%s\nOrder %d attempt %d resulted in 'No solution found'.\n",
-					strings.Repeat("-", 50), nOrder, retryCount)
 
+				fmt.Printf("\n%s\nOrder %d attempt %d resulted in 'No solution found'.\n", strings.Repeat("-", 50), nOrder, retryCount)
 				if retryCount >= maxRetriesPerOrder {
-					fmt.Printf("Maximum retries (%d) reached for order %d. Moving to next order.\n%s\n",
-						maxRetriesPerOrder, nOrder, strings.Repeat("=", 60))
+
+					fmt.Printf("Maximum retries (%d) reached for order %d. Moving to next order.\n%s\n", maxRetriesPerOrder, nOrder, strings.Repeat("=", 60))
+
 					nOrder += step
 					break
 				} else {
 					fmt.Printf("Retrying order %d...\n%s\n", nOrder, strings.Repeat("-", 50))
+
 				}
 			}
 		}
 	}
-
-	fmt.Printf("\nProcessing complete. Results written to '%s'\n", outputPath)
+	fmt.Printf("\nProcessing complete. Minimal results (Order, a, b for verified solutions) written to '%s'\n", outputPath)
 }
